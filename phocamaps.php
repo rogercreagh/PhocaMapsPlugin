@@ -534,6 +534,37 @@ if ((!isset($mapp->longitude))
 
 	} else {
 
+		//OSM tracks
+		if ($tmpl['map_type']==2) {
+			$tmpl['fitbounds'] = $mapp->fitbounds_osm;
+			$textarea = $mapp->trackfiles_osm;
+			$textarea=str_replace(array("\r\n", "\n", "\r"),'',$textarea);
+			$tracks = explode(",",$textarea);
+			$textarea = $mapp->trackcolours_osm;
+			$textarea=str_replace(array("\r\n", "\n", "\r"),'',$textarea);
+			$colours = explode(",",$textarea);
+			foreach ($tracks as $key=>&$trk) {
+				trim($trk);
+				$ext = pathinfo($trk,PATHINFO_EXTENSION);
+				if (($ext != 'gpx') && ($ext != 'kml')) {
+					$trk='';
+				} else {
+					//if no path specified add default path (hardcoded to /phocamapskml for now)
+					if (strpos($trk,'/')===false) {
+						$trk = 'phocamapskml/'.$trk;
+					}
+					trim($trk,'/');
+					$trarr = array();
+					$trarr['file'] = JFile::exists(JPATH_ROOT.'/'.$trk)? JURI::base().$trk : '';
+					$trarr['colour'] = $colours[$key];
+					$trk = $trarr;
+				}
+			}
+			$tmpl['tracks'] = $tracks;
+		} else {
+			$tmpl['tracks'] = '';
+		}
+		
 		$map	= new PhocaMapsMapOsm($id);
 
 
@@ -636,6 +667,14 @@ if ((!isset($mapp->longitude))
 		if ($tmpl['osm_easyprint'] == 1) {
 			$map->renderEasyPrint();
 		}
+		
+		if (!empty($tmpl['tracks'])) {
+			foreach ($tmpl['tracks'] as $ky=>$trk) {
+				$fitbounds = $ky==0 ? $tmpl['fitbounds'] : false;
+				$map->renderTrack($trk['file'],$trk['colour'],$fitbounds);
+			}
+		}
+		
 		$map->renderMap();
 
 		########################### END OPENSTREETMAP
